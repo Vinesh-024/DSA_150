@@ -1,0 +1,114 @@
+{
+  "entities": {
+    "userProfile": {
+      "title": "UserProfile",
+      "description": "User profile with display name and preferences",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "email"]
+    },
+    "problemState": {
+      "title": "ProblemState",
+      "description": "Progress state and spaced repetition metrics for a problem",
+      "type": "object",
+      "properties": {
+        "problemId": { "type": "string" },
+        "status": { "type": "string" },
+        "day1Date": { "type": "string" },
+        "day3Due": { "type": "string" },
+        "day3Status": { "type": "string" },
+        "day7Due": { "type": "string" },
+        "day7Status": { "type": "string" },
+        "day30Due": { "type": "string" },
+        "day30Status": { "type": "string" },
+        "timeComplexity": { "type": "string" },
+        "spaceComplexity": { "type": "string" },
+        "pattern": { "type": "string" },
+        "confidenceRating": { "type": "number" },
+        "attemptsCount": { "type": "number" },
+        "activeTimeSeconds": { "type": "number" },
+        "lastAttemptTimestamp": { "type": "string" },
+        "hintsUsedCount": { "type": "number" },
+        "isSolvedIndependently": { "type": "boolean" },
+        "notes": { "type": "string" },
+        "twoMinuteExplanationRecorded": { "type": "boolean" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["problemId", "status"]
+    },
+    "submission": {
+      "title": "Submission",
+      "description": "Code execution and submission record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "problemId": { "type": "string" },
+        "language": { "type": "string" },
+        "code": { "type": "string" },
+        "status": { "type": "string" },
+        "runtimeMs": { "type": "number" },
+        "memoryKb": { "type": "number" },
+        "passedTestCases": { "type": "number" },
+        "totalTestCases": { "type": "number" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "problemId", "language", "code", "status"]
+    },
+    "dailyRoutine": {
+      "title": "DailyRoutine",
+      "description": "Daily 3-phase execution routine status",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string" },
+        "problem1Solved": { "type": "boolean" },
+        "problem2Solved": { "type": "boolean" },
+        "reSolvesCompleted": { "type": "boolean" },
+        "coreCsReviewed": { "type": "boolean" },
+        "coreCsNotes": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["date"]
+    },
+    "codeDraft": {
+      "title": "CodeDraft",
+      "description": "User code editor draft per problem and language",
+      "type": "object",
+      "properties": {
+        "problemId": { "type": "string" },
+        "language": { "type": "string" },
+        "code": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["problemId", "language", "code"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "userProfile",
+      "description": "Root user profile document"
+    },
+    "/users/{userId}/problem_states/{problemId}": {
+      "schema": "problemState",
+      "description": "Problem tracking and spaced repetition data"
+    },
+    "/users/{userId}/submissions/{submissionId}": {
+      "schema": "submission",
+      "description": "Recorded problem solution submissions"
+    },
+    "/users/{userId}/daily_routines/{routineId}": {
+      "schema": "dailyRoutine",
+      "description": "Daily deliberate practice checkpoints"
+    },
+    "/users/{userId}/code_drafts/{draftId}": {
+      "schema": "codeDraft",
+      "description": "Auto-saved code buffer per problem and language"
+    }
+  }
+}

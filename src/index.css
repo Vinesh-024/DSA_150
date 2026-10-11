@@ -1,0 +1,185 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --canvas-bg: #F1F4F9;
+    --canvas-card: #FFFFFF;
+    --canvas-border: #E2E8F0;
+    --text-primary: #0F172A;
+    --text-muted: #64748B;
+    --panel-midnight: #080E24;
+    --panel-midnight-border: #1E293B;
+    --accent-indigo: #4F46E5;
+    --accent-violet: #7C3AED;
+    --accent-cyan: #06B6D4;
+    --accent-emerald: #10B981;
+    --accent-amber: #F59E0B;
+    --accent-rose: #F43F5E;
+  }
+
+  .dark {
+    --canvas-bg: #070A13;
+    --canvas-card: #0D1324;
+    --canvas-border: #1A2338;
+    --text-primary: #F8FAFC;
+    --text-muted: #94A3B8;
+    --panel-midnight: #080E22;
+    --panel-midnight-border: #1E293B;
+    --accent-indigo: #6366F1;
+    --accent-violet: #8B5CF6;
+    --accent-cyan: #38BDF8;
+    --accent-emerald: #10B981;
+    --accent-amber: #F59E0B;
+    --accent-rose: #FB7185;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--canvas-bg);
+    color: var(--text-primary);
+    transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Subtle Technical Ambient Grid Pattern for midnight navy panels */
+.bg-grid-midnight {
+  background-size: 28px 28px;
+  background-image: 
+    linear-gradient(to right, rgba(99, 102, 241, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(99, 102, 241, 0.05) 1px, transparent 1px);
+}
+
+.bg-radial-midnight {
+  background: radial-gradient(circle at 50% 0%, rgba(30, 58, 138, 0.28) 0%, rgba(10, 17, 40, 0.98) 75%);
+}
+
+.bg-dot-light {
+  background-size: 20px 20px;
+  background-image: radial-gradient(circle, rgba(148, 163, 184, 0.22) 1px, transparent 1px);
+}
+
+/* Concentric Network Visualization Orbit Animations */
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes spinSlowReverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+.animate-spin-orbit {
+  animation: spinSlow 90s linear infinite;
+}
+
+.animate-spin-orbit-reverse {
+  animation: spinSlowReverse 110s linear infinite;
+}
+
+/* Glow & Accent utilities */
+.glow-midnight-hero {
+  box-shadow: 0 20px 40px -15px rgba(10, 17, 40, 0.6), 0 0 30px -10px rgba(99, 102, 241, 0.15);
+}
+
+.glow-card-subtle {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #1E293B;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+.midnight-scroll::-webkit-scrollbar-track {
+  background: #090D1A;
+}
+.midnight-scroll::-webkit-scrollbar-thumb {
+  background: #1E293B;
+  border-radius: 9999px;
+}
+.midnight-scroll::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Prism.js Syntax Highlighting Tokens (VS Dark+ / GitHub Dark) */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #64748b;
+  font-style: italic;
+}
+
+.token.punctuation {
+  color: #94a3b8;
+}
+
+.token.property,
+.token.tag,
+.token.boolean,
+.token.number,
+.token.constant,
+.token.symbol,
+.token.deleted {
+  color: #38bdf8;
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted {
+  color: #a5b4fc;
+}
+
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+  color: #f43f5e;
+}
+
+.token.atrule,
+.token.attr-value,
+.token.keyword {
+  color: #ec4899;
+  font-weight: 600;
+}
+
+.token.function,
+.token.class-name {
+  color: #c084fc;
+  font-weight: 500;
+}
+
+.token.regex,
+.token.important,
+.token.variable {
+  color: #fb923c;
+}

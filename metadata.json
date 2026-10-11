@@ -1,0 +1,6 @@
+{
+  "name": "DSA 12-Week NeetCode 150 Re-Solve Platform",
+  "description": "Interactive 12-week NeetCode 150 curriculum and learning platform with LeetCode-style code editor, test evaluation with hidden test cases, 20-minute pedagogical AI coach, and strict Day 3/7/30 spaced retention loop.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

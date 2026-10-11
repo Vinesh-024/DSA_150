@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Root test doc for connection validation
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // User Profile & Scoped Collections
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isOwner(userId) && request.resource.data.userId == userId;
+      allow delete: if isOwner(userId);
+
+      // Problem States Subcollection
+      match /problem_states/{problemId} {
+        allow read, write: if isOwner(userId) && isValidId(problemId);
+      }
+
+      // Submissions Subcollection
+      match /submissions/{submissionId} {
+        allow read, write: if isOwner(userId) && isValidId(submissionId);
+      }
+
+      // Daily Routines Subcollection
+      match /daily_routines/{routineId} {
+        allow read, write: if isOwner(userId) && isValidId(routineId);
+      }
+
+      // Code Drafts Subcollection
+      match /code_drafts/{draftId} {
+        allow read, write: if isOwner(userId) && isValidId(draftId);
+      }
+    }
+  }
+}
