@@ -11,10 +11,12 @@ export type ExecutionStage =
   | 'failed';
 
 export interface ExecutionRequest {
+  problemId?: string | number;
   code: string;
   language: 'python' | 'java' | 'cpp' | 'c';
   functionName: string;
   testCases: TestCase[];
+  customTestcases?: string[];
   timeoutMs?: number;
 }
 
@@ -203,16 +205,18 @@ export class IsolatedExecutionUtility {
     const startTime = performance.now();
 
     try {
-      onStageChange?.('orchestrating', `Connecting to backend orchestration service for secure isolated execution...`);
+      onStageChange?.('orchestrating', `Connecting to Piston sandbox execution service...`);
 
-      const response = await fetch('/api/execute', {
+      const response = await fetch('/api/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          problemId: request.problemId,
           language,
           code,
           functionName,
           testCases,
+          customTestcases: request.customTestcases,
           timeoutMs
         }),
         signal: this.activeAbortController.signal

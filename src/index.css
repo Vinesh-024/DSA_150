@@ -3,6 +3,10 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
+  html {
+    font-size: 110%;
+  }
+
   :root {
     --canvas-bg: #F1F4F9;
     --canvas-card: #FFFFFF;

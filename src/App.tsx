@@ -121,7 +121,7 @@ export default function App() {
 
       <main className="flex-1 w-full">
         {currentTab === 'dashboard' && (
-          <div className="p-4 sm:p-6 lg:p-8">
+          <div className="w-full py-2 sm:py-4">
             <HomeDashboard
               problems={PROBLEMS}
               states={problemStates}
@@ -134,7 +134,7 @@ export default function App() {
         )}
 
         {currentTab === 'roadmap' && (
-          <div className="p-4 sm:p-6 lg:p-8">
+          <div className="w-full py-2 sm:py-4">
             <RoadmapExplorer
               problems={PROBLEMS}
               states={problemStates}
@@ -144,7 +144,7 @@ export default function App() {
         )}
 
         {currentTab === 'tracker' && (
-          <div className="p-4 sm:p-6 lg:p-8">
+          <div className="w-full py-2 sm:py-4">
             <ReSolveTracker
               problems={PROBLEMS}
               states={problemStates}
@@ -166,7 +166,7 @@ export default function App() {
         )}
 
         {currentTab === 'analytics' && (
-          <div className="p-4 sm:p-6 lg:p-8">
+          <div className="w-full py-2 sm:py-4">
             <AnalyticsDashboard
               problems={PROBLEMS}
               states={problemStates}
@@ -176,13 +176,13 @@ export default function App() {
         )}
 
         {currentTab === 'video-insights' && (
-          <div className="p-4 sm:p-6 lg:p-8">
+          <div className="w-full py-2 sm:py-4">
             <VideoInsightsView />
           </div>
         )}
 
         {currentTab === 'audit' && (
-          <div className="p-4 sm:p-6 lg:p-8">
+          <div className="w-full py-2 sm:py-4">
             <CurriculumAuditModal problems={PROBLEMS} />
           </div>
         )}

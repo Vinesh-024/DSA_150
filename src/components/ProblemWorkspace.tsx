@@ -51,6 +51,173 @@ import {
   getSubmissionsForProblem
 } from '../services/storageService';
 import Editor, { BeforeMount, OnMount } from '@monaco-editor/react';
+import { CodeEditor } from './CodeEditor';
+
+export interface CompilerDiagnosticHint {
+  type: 'typo' | 'case' | 'api' | 'syntax' | 'import';
+  title: string;
+  suggestion: string;
+  codeSnippet?: string;
+}
+
+export function analyzeCompilerDiagnostics(
+  errorMessage: string,
+  userCode: string,
+  language: string
+): CompilerDiagnosticHint[] {
+  if (!errorMessage) return [];
+  const hints: CompilerDiagnosticHint[] = [];
+  const lowerMsg = errorMessage.toLowerCase();
+
+  // 1. Java-specific diagnostics
+  if (language === 'java') {
+    // Case sensitivity: Hashmap -> HashMap
+    if (errorMessage.includes('Hashmap') || (lowerMsg.includes('cannot find symbol') && lowerMsg.includes('hashmap'))) {
+      hints.push({
+        type: 'case',
+        title: 'Case Sensitivity Mismatch: Hashmap → HashMap',
+        suggestion: 'Java standard collections are case-sensitive. Replace `Hashmap` with `HashMap<K, V>`.',
+        codeSnippet: 'HashMap<Integer, Integer> map = new HashMap<>();'
+      });
+    }
+
+    // Case sensitivity: Hashset -> HashSet
+    if (errorMessage.includes('Hashset') || (lowerMsg.includes('cannot find symbol') && lowerMsg.includes('hashset'))) {
+      hints.push({
+        type: 'case',
+        title: 'Case Sensitivity Mismatch: Hashset → HashSet',
+        suggestion: 'Java standard collections are case-sensitive. Replace `Hashset` with `HashSet<E>`.',
+        codeSnippet: 'HashSet<Integer> set = new HashSet<>();'
+      });
+    }
+
+    // Case sensitivity: Arraylist -> ArrayList
+    if (errorMessage.includes('Arraylist') || (lowerMsg.includes('cannot find symbol') && lowerMsg.includes('arraylist'))) {
+      hints.push({
+        type: 'case',
+        title: 'Case Sensitivity Mismatch: Arraylist → ArrayList',
+        suggestion: 'Replace `Arraylist` with `ArrayList<E>`.',
+        codeSnippet: 'List<Integer> list = new ArrayList<>();'
+      });
+    }
+
+    // String type: string -> String
+    if (errorMessage.includes('cannot find symbol') && errorMessage.includes('class string')) {
+      hints.push({
+        type: 'case',
+        title: 'Type Case Typo: string → String',
+        suggestion: 'In Java, the String class is capitalized (`String`), unlike C++ primitive aliases.',
+        codeSnippet: 'String s = "example";'
+      });
+    }
+
+    // Bool -> boolean
+    if (errorMessage.includes('cannot find symbol') && errorMessage.includes('class bool')) {
+      hints.push({
+        type: 'case',
+        title: 'Primitive Type Typo: bool → boolean',
+        suggestion: 'In Java, the boolean primitive type is written as `boolean` (or `Boolean` wrapper).',
+        codeSnippet: 'boolean flag = true;'
+      });
+    }
+
+    // API typo: getValues() -> values()
+    if (errorMessage.includes('getValues') || (lowerMsg.includes('cannot find symbol') && lowerMsg.includes('getvalues'))) {
+      hints.push({
+        type: 'api',
+        title: 'Method Name Typo: getValues() → values()',
+        suggestion: 'Java Map does not have a `getValues()` method. To iterate over values, use `map.values()`. For keys, use `map.keySet()`.',
+        codeSnippet: 'for (int val : map.values()) { ... }'
+      });
+    }
+
+    // API typo: getKeys() -> keySet()
+    if (errorMessage.includes('getKeys') || (lowerMsg.includes('cannot find symbol') && lowerMsg.includes('getkeys'))) {
+      hints.push({
+        type: 'api',
+        title: 'Method Name Typo: getKeys() → keySet()',
+        suggestion: 'Java Map does not have `getKeys()`. Use `map.keySet()` to get a Set of keys.',
+        codeSnippet: 'for (int key : map.keySet()) { ... }'
+      });
+    }
+
+    // Array .length() -> .length
+    if (errorMessage.includes('cannot find symbol') && errorMessage.includes('method length()') && userCode.includes('.length()')) {
+      hints.push({
+        type: 'api',
+        title: 'Array Property Typo: .length() → .length',
+        suggestion: 'In Java, arrays have a `.length` field, NOT a `.length()` method. Strings use `.length()`, but arrays use `.length`.',
+        codeSnippet: 'int n = nums.length; // without parentheses'
+      });
+    }
+
+    // Array .size() -> .length
+    if (errorMessage.includes('cannot find symbol') && errorMessage.includes('method size()') && (userCode.includes('nums.size()') || userCode.includes('arr.size()'))) {
+      hints.push({
+        type: 'api',
+        title: 'Array Method Typo: .size() → .length',
+        suggestion: 'Primitive arrays in Java use the `.length` property. Only Collections (List, Set, Map) use `.size()`.',
+        codeSnippet: 'int n = nums.length;'
+      });
+    }
+
+    // Variable typo: cannot find symbol: variable X (e.g. hamp vs hmap)
+    const varMatches = [...errorMessage.matchAll(/cannot find symbol\s+symbol:\s+variable\s+([a-zA-Z0-9_]+)/g)];
+    for (const match of varMatches) {
+      const missingVar = match[1];
+      const declaredVars = [...userCode.matchAll(/\b(?:int|boolean|String|char|double|long|auto|var|[A-Z][a-zA-Z0-9_<>]+)\s+([a-zA-Z0-9_]+)\b/g)]
+        .map(m => m[1])
+        .filter(v => v !== missingVar && v.length >= 2);
+
+      const candidate = declaredVars.find(v => {
+        if (Math.abs(v.length - missingVar.length) > 2) return false;
+        const setA = new Set(v.split(''));
+        const setB = new Set(missingVar.split(''));
+        let common = 0;
+        setA.forEach(c => { if (setB.has(c)) common++; });
+        return common >= Math.min(v.length, missingVar.length) - 1;
+      });
+
+      if (candidate) {
+        hints.push({
+          type: 'typo',
+          title: `Variable Identifier Typo: '${missingVar}' → '${candidate}'`,
+          suggestion: `Compiler cannot find variable \`${missingVar}\`. Did you mean declared variable \`${candidate}\`?`,
+          codeSnippet: `// Replace '${missingVar}' with '${candidate}'`
+        });
+      } else {
+        hints.push({
+          type: 'typo',
+          title: `Unresolved Variable: '${missingVar}'`,
+          suggestion: `Variable \`${missingVar}\` is used before declaration or scope. Ensure it is initialized before this line.`,
+        });
+      }
+    }
+  }
+
+  // 2. C++ diagnostics
+  if (language === 'cpp') {
+    if (errorMessage.includes('has no member named') && errorMessage.includes('length')) {
+      hints.push({
+        type: 'api',
+        title: 'Vector Method Typo: .length() → .size()',
+        suggestion: 'In C++, std::vector uses `.size()` rather than `.length()`.',
+        codeSnippet: 'int n = nums.size();'
+      });
+    }
+  }
+
+  // 3. General missing semicolon
+  if (errorMessage.includes("';' expected")) {
+    hints.push({
+      type: 'syntax',
+      title: 'Missing Semicolon: `;` Expected',
+      suggestion: 'A line statement is missing a closing semicolon `;` at the end.',
+    });
+  }
+
+  return hints;
+}
 
 interface ProblemWorkspaceProps {
   problem: Problem;
@@ -74,6 +241,7 @@ export const ProblemWorkspace: React.FC<ProblemWorkspaceProps> = ({
   const [language, setLanguage] = useState<'python' | 'java' | 'cpp' | 'c'>('python');
   const [code, setCode] = useState<string>('');
   const [isCopied, setIsCopied] = useState(false);
+  const [cursorPos, setCursorPos] = useState<{ line: number; col: number }>({ line: 1, col: 1 });
 
   // Bottom Console Drawer State
   const [consoleOpen, setConsoleOpen] = useState(true);
@@ -155,6 +323,10 @@ export const ProblemWorkspace: React.FC<ProblemWorkspaceProps> = ({
     onUpdateState({ activeTimeSeconds: timerSeconds });
   }, [timerSeconds]);
 
+  const [editorEngine, setEditorEngine] = useState<'monaco' | 'canvas'>('monaco');
+  const [resetConfirmOpen, setResetConfirmOpen] = useState<boolean>(false);
+  const [resetSuccessToast, setResetSuccessToast] = useState<boolean>(false);
+
   const handleCodeChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     setCode(val);
@@ -162,11 +334,21 @@ export const ProblemWorkspace: React.FC<ProblemWorkspaceProps> = ({
   };
 
   const handleResetCode = () => {
-    if (window.confirm('Reset code to initial template? Your current edits will be cleared.')) {
-      const stub = problem.starterCode[language];
-      setCode(stub);
-      saveCodeDraft(problem.id, language, stub);
+    try {
+      localStorage.removeItem(`draft_${problem.id}_${language}`);
+      localStorage.removeItem(`code_draft_${problem.id}_${language}`);
+    } catch (err) {
+      console.warn('Storage cleanup notice', err);
     }
+    const cleanStub = problem.starterTemplates?.[language] || problem.starterCode?.[language] || '';
+    setCode(cleanStub);
+    saveCodeDraft(problem.id, language, cleanStub);
+    if (editorRef.current) {
+      editorRef.current.setValue(cleanStub);
+    }
+    setResetConfirmOpen(false);
+    setResetSuccessToast(true);
+    setTimeout(() => setResetSuccessToast(false), 3000);
   };
 
   const handleCopyCode = () => {
@@ -436,6 +618,13 @@ export const ProblemWorkspace: React.FC<ProblemWorkspaceProps> = ({
     if (model) {
       monaco.editor.setModelLanguage(model, getMonacoLanguageMode(language));
     }
+    // Track cursor position in status telemetry
+    editor.onDidChangeCursorPosition((e) => {
+      setCursorPos({
+        line: e.position.lineNumber,
+        col: e.position.column
+      });
+    });
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Quote, () => {
       handleRunCode();
     });
@@ -467,8 +656,10 @@ export const ProblemWorkspace: React.FC<ProblemWorkspaceProps> = ({
       language,
       problem.functionName,
       testSuiteToRun,
-      3000,
-      (_stage, msg) => setExecutionStageMessage(msg)
+      4000,
+      (_stage, msg) => setExecutionStageMessage(msg),
+      problem.number || problem.id,
+      customCases
     );
 
     setExecutionResult(result);
@@ -493,8 +684,9 @@ export const ProblemWorkspace: React.FC<ProblemWorkspaceProps> = ({
       language,
       problem.functionName,
       fullAuthoritativeSuite,
-      3000,
-      (_stage, msg) => setExecutionStageMessage(msg)
+      4000,
+      (_stage, msg) => setExecutionStageMessage(msg),
+      problem.number || problem.id
     );
 
     setExecutionResult(result);
@@ -774,11 +966,12 @@ export const ProblemWorkspace: React.FC<ProblemWorkspaceProps> = ({
           </button>
 
           <button
-            onClick={handleResetCode}
-            title="Reset to starter stub"
-            className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded transition-colors"
+            onClick={() => setResetConfirmOpen(true)}
+            title="Reset code to clean starter template"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-rose-300 border-rose-900/40 hover:border-rose-700/60 transition-all shadow-sm group"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
+            <RotateCcw className="w-3.5 h-3.5 text-rose-400 group-hover:-rotate-90 transition-transform duration-300" />
+            <span className="hidden sm:inline">Reset Code</span>
           </button>
 
           <button
@@ -1197,48 +1390,92 @@ export const ProblemWorkspace: React.FC<ProblemWorkspaceProps> = ({
                 <span className="text-slate-400 font-mono text-[10px]">
                   Mode: <span className="text-indigo-400 font-semibold">{getMonacoLanguageMode(language)}</span>
                 </span>
+                <span className="text-slate-600 text-[10px]">|</span>
+                <span className="text-slate-300 font-mono text-[10px] flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-900 border border-slate-800">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Ln {cursorPos.line}, Col {cursorPos.col}</span>
+                </span>
+                <span className="text-slate-600 text-[10px]">|</span>
+                <div className="flex items-center rounded-md border border-slate-800 bg-slate-950/80 p-0.5 text-[10px] font-mono">
+                  <button
+                    type="button"
+                    onClick={() => setEditorEngine('monaco')}
+                    className={`px-2 py-0.5 rounded transition-colors ${
+                      editorEngine === 'monaco' ? 'bg-indigo-600/40 text-indigo-200 font-semibold shadow-sm' : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Monaco
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditorEngine('canvas')}
+                    className={`px-2 py-0.5 rounded transition-colors ${
+                      editorEngine === 'canvas' ? 'bg-indigo-600/40 text-indigo-200 font-semibold shadow-sm' : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Canvas
+                  </button>
+                </div>
               </div>
             </div>
 
             <div className="flex-1 relative overflow-hidden">
-              <Editor
-                height="100%"
-                language={getMonacoLanguageMode(language)}
-                path={`solution-${problem.id}-${language}.${language === 'python' ? 'py' : language === 'java' ? 'java' : language === 'cpp' ? 'cpp' : 'c'}`}
-                value={code}
-                theme={getLanguageTheme(language)}
-                beforeMount={handleEditorBeforeMount}
-                onMount={handleEditorOnMount}
-                onChange={(val) => {
-                  const nextVal = val || '';
-                  setCode(nextVal);
-                  saveCodeDraft(problem.id, language, nextVal);
-                }}
-                options={{
-                  fontSize: 13,
-                  fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-                  lineHeight: 22,
-                  tabSize: 4,
-                  insertSpaces: true,
-                  minimap: { enabled: false },
-                  scrollBeyondLastLine: false,
-                  automaticLayout: true,
-                  lineNumbers: 'on',
-                  renderLineHighlight: 'all',
-                  padding: { top: 12, bottom: 12 },
-                  bracketPairColorization: { enabled: true },
-                  suggestOnTriggerCharacters: true,
-                  quickSuggestions: true,
-                  formatOnPaste: true,
-                  cursorBlinking: 'smooth',
-                  smoothScrolling: true,
-                }}
-                loading={
-                  <div className="flex items-center justify-center h-full text-slate-500 font-mono text-xs">
-                    Initializing Monaco Editor with {getLanguageThemeLabel(language)}...
-                  </div>
-                }
-              />
+              {editorEngine === 'canvas' ? (
+                <CodeEditor
+                  code={code}
+                  onChange={(val) => {
+                    setCode(val);
+                    saveCodeDraft(problem.id, language, val);
+                  }}
+                  language={language}
+                  onCursorChange={(pos) => {
+                    setCursorPos({ line: pos.line, col: pos.column });
+                  }}
+                />
+              ) : (
+                <Editor
+                  height="100%"
+                  language={getMonacoLanguageMode(language)}
+                  path={`solution-${problem.id}-${language}.${language === 'python' ? 'py' : language === 'java' ? 'java' : language === 'cpp' ? 'cpp' : 'c'}`}
+                  value={code}
+                  theme={getLanguageTheme(language)}
+                  beforeMount={handleEditorBeforeMount}
+                  onMount={handleEditorOnMount}
+                  onChange={(val) => {
+                    const nextVal = val || '';
+                    setCode(nextVal);
+                    saveCodeDraft(problem.id, language, nextVal);
+                  }}
+                  options={{
+                    fontSize: 13,
+                    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                    lineHeight: 24,
+                    tabSize: 4,
+                    insertSpaces: true,
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                    lineNumbers: 'on',
+                    lineNumbersMinChars: 3,
+                    folding: true,
+                    foldingHighlight: true,
+                    showFoldingControls: 'always',
+                    renderLineHighlight: 'all',
+                    padding: { top: 12, bottom: 12 },
+                    bracketPairColorization: { enabled: true },
+                    suggestOnTriggerCharacters: true,
+                    quickSuggestions: true,
+                    formatOnPaste: true,
+                    cursorBlinking: 'smooth',
+                    smoothScrolling: true,
+                  }}
+                  loading={
+                    <div className="flex items-center justify-center h-full text-slate-500 font-mono text-xs">
+                      Initializing Monaco Editor with {getLanguageThemeLabel(language)}...
+                    </div>
+                  }
+                />
+              )}
             </div>
           </div>
 
@@ -1431,8 +1668,40 @@ export const ProblemWorkspace: React.FC<ProblemWorkspaceProps> = ({
 
                         {/* Error Message if Compilation / Runtime Error */}
                         {executionResult.errorMessage && (
-                          <div className="p-3 bg-rose-950/40 border border-rose-800/60 rounded-lg text-rose-300 text-xs leading-relaxed whitespace-pre-wrap">
-                            {executionResult.errorMessage}
+                          <div className="space-y-3">
+                            <div className="p-3 bg-rose-950/40 border border-rose-800/60 rounded-lg text-rose-300 text-xs leading-relaxed whitespace-pre-wrap font-mono">
+                              {executionResult.errorMessage}
+                            </div>
+
+                            {/* Actionable Compiler Diagnostics & Auto-Remediation Hints */}
+                            {(() => {
+                              const hints = analyzeCompilerDiagnostics(executionResult.errorMessage, code, language);
+                              if (hints.length === 0) return null;
+                              return (
+                                <div className="p-3.5 bg-amber-950/30 border border-amber-500/40 rounded-xl space-y-2.5">
+                                  <div className="flex items-center gap-2 text-xs font-bold text-amber-400">
+                                    <Sparkles className="w-4 h-4 text-amber-400" />
+                                    <span>Actionable Compiler Diagnostics & Typo Detection:</span>
+                                  </div>
+                                  <div className="space-y-2">
+                                    {hints.map((hint, hIdx) => (
+                                      <div key={hIdx} className="bg-slate-900/90 border border-amber-500/30 rounded-lg p-2.5 text-xs space-y-1">
+                                        <div className="font-semibold text-amber-300 flex items-center gap-1.5">
+                                          <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                          <span>{hint.title}</span>
+                                        </div>
+                                        <p className="text-slate-300 leading-normal">{hint.suggestion}</p>
+                                        {hint.codeSnippet && (
+                                          <div className="mt-1 px-2.5 py-1 bg-black/60 rounded border border-slate-800 text-emerald-300 font-mono text-[11px]">
+                                            {hint.codeSnippet}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </div>
                         )}
 
@@ -1681,6 +1950,49 @@ export const ProblemWorkspace: React.FC<ProblemWorkspaceProps> = ({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Reset Code Confirmation Modal */}
+      {resetConfirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="bg-[#0E131F] border border-rose-500/40 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4 font-sans">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-rose-500/15 text-rose-400 rounded-xl border border-rose-500/30">
+                <RotateCcw className="w-5 h-5 text-rose-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white tracking-tight">Reset Solution Code</h3>
+                <p className="text-xs text-rose-400/90 font-mono">Restore Clean Canonical Template</p>
+              </div>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed bg-[#121828] p-3 rounded-xl border border-slate-800">
+              This will clear your current local draft and restore the clean, strongly-typed starter code signature for <strong className="text-white">{language.toUpperCase()}</strong>. Any unsaved edits will be discarded.
+            </p>
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                onClick={() => setResetConfirmOpen(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleResetCode}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold rounded-xl shadow-lg transition-colors flex items-center gap-1.5"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Confirm Reset</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Toast Notification */}
+      {resetSuccessToast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 bg-emerald-950/90 border border-emerald-600/60 rounded-xl text-emerald-200 text-xs shadow-2xl font-sans animate-in slide-in-from-bottom duration-200">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          <span>Code reset successfully to clean strongly-typed starter template!</span>
         </div>
       )}
     </div>

@@ -93,7 +93,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   }, [reSolveDueProblems, currentWeekProblems, problems, states]);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16 font-sans">
+    <div className="space-y-6 w-full max-w-[1600px] mx-auto px-6 lg:px-10 pb-16 font-sans">
       
       {/* 1. Page Title & Contextual Actions Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">

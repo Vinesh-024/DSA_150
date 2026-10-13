@@ -124,9 +124,9 @@ export const ConcentricNetworkVisualization: React.FC<ConcentricNetworkVisualiza
   ];
 
   return (
-    <div className="flex flex-col xl:flex-row items-center justify-between gap-6 w-full">
+    <div className="flex flex-col xl:flex-row items-center justify-between gap-6 2xl:gap-10 w-full">
       {/* Interactive Concentric SVG Canvas */}
-      <div className="relative flex items-center justify-center shrink-0 w-[320px] h-[320px] sm:w-[420px] sm:h-[420px] lg:w-[480px] lg:h-[480px]">
+      <div className="relative flex items-center justify-center shrink-0 w-[320px] h-[320px] sm:w-[420px] sm:h-[420px] lg:w-[480px] lg:h-[480px] xl:w-[500px] xl:h-[500px] 2xl:w-[540px] 2xl:h-[540px]">
         {/* Ambient background glows */}
         <div className="absolute inset-0 bg-radial-midnight pointer-events-none rounded-full" />
         <div
@@ -423,7 +423,7 @@ export const ConcentricNetworkVisualization: React.FC<ConcentricNetworkVisualiza
       </div>
 
       {/* Right HUD: Active Topic Telemetry & Drilldown */}
-      <div className="flex-1 w-full max-w-lg bg-[#080E21]/90 border border-slate-800/90 rounded-xl p-5 backdrop-blur-md shadow-xl flex flex-col justify-between">
+      <div className="flex-1 w-full min-w-0 max-w-full xl:max-w-xl 2xl:max-w-2xl bg-[#080E21]/90 border border-slate-800/90 rounded-xl p-5 2xl:p-6 backdrop-blur-md shadow-xl flex flex-col justify-between">
         <div className="space-y-4">
           {/* Header Row with Ring Filter Chips */}
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3">

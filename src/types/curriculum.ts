@@ -18,10 +18,29 @@ export interface TestCase {
   isHidden?: boolean;
 }
 
+export interface ProblemDefinition {
+  id: number;
+  title: string;
+  slug: string;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  category: string;
+  starterTemplates: {
+    java: string;
+    cpp: string;
+    c: string;
+    python: string;
+  };
+  testCases: Array<{
+    input: any[];
+    expected: any;
+  }>;
+}
+
 export interface Problem {
   id: string; // e.g., 'p-217'
   number: number; // e.g., 217
   title: string; // e.g., 'Contains Duplicate'
+  slug: string; // e.g., 'contains-duplicate'
   week: number; // 1 to 12
   topic: string; // e.g., 'Arrays & Hashing'
   difficulty: Difficulty;
@@ -30,6 +49,12 @@ export interface Problem {
   solutionVideoUrl: string;
   description: string;
   constraints: string[];
+  starterTemplates: {
+    python: string;
+    java: string;
+    cpp: string;
+    c: string;
+  };
   starterCode: {
     python: string;
     java: string;
@@ -37,6 +62,10 @@ export interface Problem {
     c: string;
   };
   functionName: string;
+  testCases: Array<{
+    input: any[];
+    expected: any;
+  }>;
   sampleTestCases: TestCase[];
   hiddenTestCases: TestCase[];
 }

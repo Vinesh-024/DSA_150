@@ -1,6 +1,7 @@
-import { Problem } from '../types/curriculum';
+import { Problem, ProblemDefinition } from '../types/curriculum';
+import { buildStarterTemplates, toProblemDefinition } from './problemSignatures';
 
-export const PROBLEMS_RAW: Array<Omit<Problem, 'starterCode' | 'sampleTestCases' | 'hiddenTestCases' | 'functionName'> & {
+export const PROBLEMS_RAW: Array<Omit<Problem, 'starterCode' | 'starterTemplates' | 'testCases' | 'sampleTestCases' | 'hiddenTestCases' | 'functionName'> & {
   slug: string;
   defaultFunctionName: string;
   starterJs?: string;
@@ -720,41 +721,26 @@ export const PROBLEMS_RAW: Array<Omit<Problem, 'starterCode' | 'sampleTestCases'
 
 export const PROBLEMS: Problem[] = PROBLEMS_RAW.map(raw => {
   const fn = raw.defaultFunctionName;
+  const templates = buildStarterTemplates(raw);
 
-  const pyStarter = raw.starterPy || `class Solution:
-    def ${fn}(self, *args):
-        # Time: O(?) | Space: O(?)
-        pass
-`;
+  const sampleCases = raw.sampleTestCases || [
+    { input: 'Sample Test Case 1', parsedInput: [], expected: true, description: 'Default Sample' }
+  ];
+  const hiddenCases = raw.hiddenTestCases || [
+    { input: 'Hidden Boundary Case 1', parsedInput: [], expected: true, description: 'Edge Test', isHidden: true },
+    { input: 'Hidden Stress Case 2', parsedInput: [], expected: true, description: 'Scale Test', isHidden: true }
+  ];
 
-  const javaStarter = `class Solution {
-    // Time: O(?) | Space: O(?)
-    public Object ${fn}(Object... args) {
-        return null;
-    }
-}
-`;
-
-  const cppStarter = `class Solution {
-public:
-    // Time: O(?) | Space: O(?)
-    auto ${fn}(auto... args) {
-        // Return optimal result
-    }
-};
-`;
-
-  const cStarter = `// Time: O(?) | Space: O(?)
-void* ${fn}(void* args) {
-    // Implement optimal solution
-    return NULL;
-}
-`;
+  const testCases = [...sampleCases, ...hiddenCases].map(tc => ({
+    input: tc.parsedInput || [],
+    expected: tc.expected
+  }));
 
   return {
     id: raw.id,
     number: raw.number,
     title: raw.title,
+    slug: raw.slug,
     week: raw.week,
     topic: raw.topic,
     difficulty: raw.difficulty,
@@ -764,18 +750,12 @@ void* ${fn}(void* args) {
     description: raw.description,
     constraints: raw.constraints,
     functionName: fn,
-    starterCode: {
-      python: pyStarter,
-      java: javaStarter,
-      cpp: cppStarter,
-      c: cStarter
-    },
-    sampleTestCases: raw.sampleTestCases || [
-      { input: 'Sample Test Case 1', parsedInput: [], expected: true, description: 'Default Sample' }
-    ],
-    hiddenTestCases: raw.hiddenTestCases || [
-      { input: 'Hidden Boundary Case 1', parsedInput: [], expected: true, description: 'Edge Test', isHidden: true },
-      { input: 'Hidden Stress Case 2', parsedInput: [], expected: true, description: 'Scale Test', isHidden: true }
-    ]
+    starterTemplates: templates,
+    starterCode: templates,
+    testCases,
+    sampleTestCases: sampleCases,
+    hiddenTestCases: hiddenCases
   };
 });
+
+export const PROBLEM_DEFINITIONS: ProblemDefinition[] = PROBLEMS_RAW.map(raw => toProblemDefinition(raw));

@@ -47,15 +47,19 @@ export async function runTestCasesInSandbox(
   language: 'python' | 'java' | 'cpp' | 'c',
   functionName: string,
   testCases: TestCase[],
-  timeoutMs: number = 3000,
-  onStageChange?: ExecutionStageListener
+  timeoutMs: number = 4000,
+  onStageChange?: ExecutionStageListener,
+  problemId?: string | number,
+  customTestcases?: string[]
 ): Promise<ExecutionResult> {
   return isolatedExecutionUtility.execute(
     {
+      problemId,
       code: userCode,
       language,
       functionName,
       testCases,
+      customTestcases,
       timeoutMs
     },
     onStageChange
