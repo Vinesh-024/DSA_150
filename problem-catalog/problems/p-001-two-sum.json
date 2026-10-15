@@ -1,0 +1,63 @@
+{
+  "id": "p-001",
+  "number": 1,
+  "title": "Two Sum",
+  "slug": "two-sum",
+  "difficulty": "Easy",
+  "topic": "Arrays & Hashing",
+  "week": 1,
+  "description": "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.\n\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.\n\nYou can return the answer in any order.",
+  "constraints": [
+    "2 <= nums.length <= 10^4",
+    "-10^9 <= nums[i] <= 10^9",
+    "-10^9 <= target <= 10^9",
+    "Only one valid answer exists."
+  ],
+  "starterCode": {
+    "python": "class Solution:\n    def twoSum(self, nums: list[int], target: int) -> list[int]:\n        # Write your solution here\n        pass\n",
+    "java": "class Solution {\n    public int[] twoSum(int[] nums, int target) {\n        // Write your solution here\n        return new int[]{};\n    }\n}\n",
+    "cpp": "#include <vector>\nusing namespace std;\n\nclass Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n        // Write your solution here\n        return {};\n    }\n};\n"
+  },
+  "functionName": "twoSum",
+  "sampleTestCases": [
+    {
+      "input": "nums = [2,7,11,15], target = 9",
+      "expected": [0, 1],
+      "description": "nums[0] + nums[1] == 9, so we return [0, 1]"
+    },
+    {
+      "input": "nums = [3,2,4], target = 6",
+      "expected": [1, 2],
+      "description": "nums[1] + nums[2] == 6, so we return [1, 2]"
+    },
+    {
+      "input": "nums = [3,3], target = 6",
+      "expected": [0, 1],
+      "description": "Duplicate values: nums[0] + nums[1] == 6"
+    }
+  ],
+  "hiddenTestCases": [
+    {
+      "input": "nums = [-1,-2,-3,-4,-5], target = -8",
+      "expected": [2, 4],
+      "description": "Negative numbers"
+    },
+    {
+      "input": "nums = [0,4,3,0], target = 0",
+      "expected": [0, 3],
+      "description": "Zero elements"
+    },
+    {
+      "input": "nums = [1000000000,3,-1000000000], target = 0",
+      "expected": [0, 2],
+      "description": "Large 32-bit boundary integers"
+    }
+  ],
+  "hints": {
+    "h1": "Can you check if the complement (target - current_number) has already been seen as you traverse the array?",
+    "h2": "A Hash Map (dictionary) provides O(1) average lookup time. What should you store as the key, and what as the value?",
+    "h3": "Algorithm steps:\n1. Initialize an empty hash map `prevMap` mapping value -> index.\n2. For each index `i` and number `n` in `nums`:\n   a. Calculate `diff = target - n`.\n   b. If `diff` exists in `prevMap`, return `[prevMap[diff], i]`.\n   c. Otherwise, insert `prevMap[n] = i`.\n3. Return empty list if no pair found.",
+    "h4": "Full Solution Breakdown (Hash Map One-Pass):\n- Time Complexity: O(n) because we traverse the list of n elements exactly once, and each lookup in the hash map takes O(1) time.\n- Space Complexity: O(n) auxiliary space to store at most n elements in the hash map.\n\nPython:\n```python\nclass Solution:\n    def twoSum(self, nums: list[int], target: int) -> list[int]:\n        prevMap = {}\n        for i, n in enumerate(nums):\n            diff = target - n\n            if diff in prevMap:\n                return [prevMap[diff], i]\n            prevMap[n] = i\n        return []\n```"
+  },
+  "leetcodeUrl": "https://leetcode.com/problems/two-sum/"
+}

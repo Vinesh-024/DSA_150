@@ -1,141 +1,92 @@
 export type Difficulty = 'Easy' | 'Medium' | 'Hard';
 
-export type ProblemStatus =
-  | 'not_started'
-  | 'in_progress'
-  | 'resolve_due'
-  | 'redo'
-  | 'mastered';
-
-export type ReSolveChoice = 'Done' | 'Redo' | null;
+export type Language = 'python' | 'java' | 'cpp';
 
 export interface TestCase {
-  id?: string;
-  input: string; // JSON string or raw arguments representation
-  parsedInput: any[];
+  input: string;
   expected: any;
   description?: string;
-  isHidden?: boolean;
 }
 
-export interface ProblemDefinition {
-  id: number;
-  title: string;
-  slug: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
-  category: string;
-  starterTemplates: {
-    java: string;
-    cpp: string;
-    c: string;
-    python: string;
-  };
-  testCases: Array<{
-    input: any[];
-    expected: any;
-  }>;
+export interface ProblemProgressiveHints {
+  h1: string; // Conceptual Nudge
+  h2: string; // Pattern / Data Structure Clue
+  h3: string; // Ordered Algorithm Steps / Pseudo-code
+  h4: string; // Full Solution Code & Invariant Breakdown
 }
 
 export interface Problem {
-  id: string; // e.g., 'p-217'
-  number: number; // e.g., 217
-  title: string; // e.g., 'Contains Duplicate'
-  slug: string; // e.g., 'contains-duplicate'
-  week: number; // 1 to 12
-  topic: string; // e.g., 'Arrays & Hashing'
+  id: string;
+  number: number;
+  title: string;
+  slug: string;
   difficulty: Difficulty;
-  leetcodeUrl: string;
-  freeVersionUrl?: string;
-  solutionVideoUrl: string;
+  topic: string;
+  week: number;
   description: string;
   constraints: string[];
-  starterTemplates: {
-    python: string;
-    java: string;
-    cpp: string;
-    c: string;
-  };
-  starterCode: {
-    python: string;
-    java: string;
-    cpp: string;
-    c: string;
-  };
+  starterCode: Record<Language, string>;
   functionName: string;
-  testCases: Array<{
-    input: any[];
-    expected: any;
-  }>;
   sampleTestCases: TestCase[];
   hiddenTestCases: TestCase[];
+  hints: ProblemProgressiveHints;
+  leetcodeUrl?: string;
 }
+
+export type MasteryStatus =
+  | 'not_started'
+  | 'attempted'
+  | 'solved_with_help'
+  | 'solved_independently'
+  | 'needs_revision'
+  | 'mastered';
 
 export interface UserProblemState {
   problemId: string;
-  status: ProblemStatus;
-  day1Date: string | null; // YYYY-MM-DD
+  status: MasteryStatus;
+  firstSolvedDate: string | null;
   day3Due: string | null;
-  day3Status: ReSolveChoice;
+  day3Status: 'Done' | 'Redo' | null;
   day7Due: string | null;
-  day7Status: ReSolveChoice;
+  day7Status: 'Done' | 'Redo' | null;
   day30Due: string | null;
-  day30Status: ReSolveChoice;
+  day30Status: 'Done' | 'Redo' | null;
   timeComplexity: string;
   spaceComplexity: string;
   pattern: string;
   triggerLine: string;
-  confidenceRating: number; // 1 to 5
-  attemptsCount: number;
-  activeTimeSeconds: number;
-  lastAttemptTimestamp: string | null;
-  hintsUsedCount: number;
-  isSolvedIndependently: boolean;
   notes: string;
-  twoMinuteExplanationRecorded: boolean;
+  activeStruggleSeconds: number;
+  hintsUsedCount: number;
+  highestHintLevel: number; // 0 (none), 1 (H1), 2 (H2), 3 (H3), 4 (H4)
+  attemptsCount: number;
+  lastAttemptTimestamp: string | null;
 }
 
 export interface SubmissionRecord {
   id: string;
   problemId: string;
   problemTitle: string;
-  timestamp: string;
+  language: Language;
   code: string;
-  language: 'python' | 'java' | 'cpp' | 'c';
-  verdict: 'Accepted' | 'Wrong Answer' | 'Time Limit Exceeded' | 'Runtime Error' | 'Compilation Error';
+  verdict:
+    | 'Accepted'
+    | 'Wrong Answer'
+    | 'Time Limit Exceeded'
+    | 'Memory Limit Exceeded'
+    | 'Compilation Error'
+    | 'Runtime Error'
+    | 'Judge Error';
+  runtimeMs: number;
+  memoryKb: number;
   totalCases: number;
   passedCases: number;
-  runtimeMs: number;
-  memoryMb?: number;
+  timestamp: string;
+  isRecallMode?: boolean;
   failedCaseDetails?: {
     input: string;
-    expected: string;
-    actual: string;
+    expected: any;
+    actual: any;
+    description?: string;
   };
-  aiAssistanceUsed: boolean;
-  hintLevelUsed: number;
-  approachType?: 'brute_force' | 'optimal' | 'alternative';
-}
-
-export interface WeekCurriculum {
-  week: number;
-  title: string;
-  topics: string[];
-  problemCount: number;
-  easyCount: number;
-  mediumCount: number;
-  hardCount: number;
-  prerequisites: string[];
-  learningObjectives: string[];
-  coreCsTopic: string;
-  description: string;
-}
-
-export interface VideoInsightItem {
-  id: string;
-  takeaway: string;
-  supportingEvidence: string;
-  learningImplication: string;
-  actionableBehavior: string;
-  dashboardIntegration: string;
-  successMetric: string;
 }

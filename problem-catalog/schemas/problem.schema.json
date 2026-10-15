@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ProblemDefinition",
+  "type": "object",
+  "required": [
+    "id",
+    "number",
+    "title",
+    "slug",
+    "difficulty",
+    "topic",
+    "week",
+    "description",
+    "starterCode",
+    "sampleTestCases",
+    "hiddenTestCases",
+    "hints"
+  ],
+  "properties": {
+    "id": { "type": "string" },
+    "number": { "type": "integer" },
+    "title": { "type": "string" },
+    "slug": { "type": "string" },
+    "difficulty": { "type": "string", "enum": ["Easy", "Medium", "Hard"] },
+    "topic": { "type": "string" },
+    "week": { "type": "integer", "minimum": 1, "maximum": 12 },
+    "description": { "type": "string" },
+    "constraints": { "type": "array", "items": { "type": "string" } },
+    "starterCode": {
+      "type": "object",
+      "required": ["python", "java", "cpp"],
+      "properties": {
+        "python": { "type": "string" },
+        "java": { "type": "string" },
+        "cpp": { "type": "string" }
+      }
+    },
+    "functionName": { "type": "string" },
+    "sampleTestCases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["input", "expected"],
+        "properties": {
+          "input": { "type": "string" },
+          "expected": {},
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "hiddenTestCases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["input", "expected"],
+        "properties": {
+          "input": { "type": "string" },
+          "expected": {},
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "hints": {
+      "type": "object",
+      "required": ["h1", "h2", "h3", "h4"],
+      "properties": {
+        "h1": { "type": "string" },
+        "h2": { "type": "string" },
+        "h3": { "type": "string" },
+        "h4": { "type": "string" }
+      }
+    }
+  }
+}

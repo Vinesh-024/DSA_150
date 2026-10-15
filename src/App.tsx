@@ -1,151 +1,100 @@
 import React, { useState, useEffect } from 'react';
-import { PROBLEMS } from './data/curriculumData';
-import { UserProblemState, SubmissionRecord, Problem } from './types/curriculum';
+import { PROBLEMS, getProblemById } from './data/problemsData';
+import { UserProblemState, Problem } from './types/curriculum';
 import {
   loadAllProblemStates,
-  loadAllSubmissions,
-  loadDailyRoutine,
-  saveDailyRoutine,
-  DailyRoutineState
+  updateProblemState,
+  getTodayString
 } from './services/storageService';
-import { Navbar } from './components/Navbar';
-import { HomeDashboard } from './components/HomeDashboard';
-import { RoadmapExplorer } from './components/RoadmapExplorer';
-import { ReSolveTracker } from './components/ReSolveTracker';
-import { ProblemWorkspace } from './components/ProblemWorkspace';
-import { AnalyticsDashboard } from './components/AnalyticsDashboard';
-import { VideoInsightsView } from './components/VideoInsightsView';
-import { CurriculumAuditModal } from './components/CurriculumAuditModal';
-import { ToastProvider } from './components/Toast';
-import { CommandPalette } from './components/CommandPalette';
-import { AuthProvider } from './context/AuthContext';
-import { ThemeProvider } from './context/ThemeContext';
+import { Navbar } from './components/layout/Navbar';
+import { BentoDashboard } from './components/features/BentoDashboard';
+import { RoadmapView } from './components/features/RoadmapView';
+import { CodingWorkspace } from './components/features/CodingWorkspace';
+import { RevisionCenter } from './components/features/RevisionCenter';
+import { CSFundamentalsView } from './components/features/CSFundamentalsView';
+import { SystemDesignView } from './components/features/SystemDesignView';
+import { JournalView } from './components/features/JournalView';
+import { AnalyticsView } from './components/features/AnalyticsView';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
   const [problemStates, setProblemStates] = useState<Record<string, UserProblemState>>({});
-  const [submissions, setSubmissions] = useState<SubmissionRecord[]>([]);
-  const [dailyRoutine, setDailyRoutine] = useState<DailyRoutineState>(loadDailyRoutine());
-  const [activeProblemId, setActiveProblemId] = useState<string>('p-217');
-  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState<boolean>(false);
+  const [activeProblemId, setActiveProblemId] = useState<string>('p-1');
 
-  // Load persisted states on mount
+  // Load problem states on mount and subscribe to updates
   useEffect(() => {
     setProblemStates(loadAllProblemStates());
-    setSubmissions(loadAllSubmissions());
-    setDailyRoutine(loadDailyRoutine());
 
     const handleStatesUpdate = () => setProblemStates(loadAllProblemStates());
-    const handleSubmissionsUpdate = () => setSubmissions(loadAllSubmissions());
-    const handleRoutineUpdate = () => setDailyRoutine(loadDailyRoutine());
+    const handleDataCleared = () => {
+      setProblemStates(loadAllProblemStates());
+      setActiveProblemId('p-1');
+    };
 
-    window.addEventListener('neetcode_states_updated', handleStatesUpdate);
-    window.addEventListener('neetcode_submissions_updated', handleSubmissionsUpdate);
-    window.addEventListener('neetcode_routine_updated', handleRoutineUpdate);
+    window.addEventListener('cozy_states_updated', handleStatesUpdate);
+    window.addEventListener('cozy_data_cleared', handleDataCleared);
 
     return () => {
-      window.removeEventListener('neetcode_states_updated', handleStatesUpdate);
-      window.removeEventListener('neetcode_submissions_updated', handleSubmissionsUpdate);
-      window.removeEventListener('neetcode_routine_updated', handleRoutineUpdate);
+      window.removeEventListener('cozy_states_updated', handleStatesUpdate);
+      window.removeEventListener('cozy_data_cleared', handleDataCleared);
     };
   }, []);
 
   const activeProblem: Problem =
-    PROBLEMS.find((p) => p.id === activeProblemId) || PROBLEMS[0];
-
-  const activeProblemIndex = PROBLEMS.findIndex((p) => p.id === activeProblem.id);
+    getProblemById(activeProblemId) || PROBLEMS[0];
 
   const handleSelectProblem = (id: string) => {
     setActiveProblemId(id);
     setCurrentTab('workspace');
   };
 
-  const handlePreviousProblem = () => {
-    if (activeProblemIndex > 0) {
-      setActiveProblemId(PROBLEMS[activeProblemIndex - 1].id);
-    }
+  const handleUpdateProblemState = (updates: Partial<UserProblemState>) => {
+    const next = updateProblemState(activeProblem.id, updates);
+    setProblemStates((prev) => ({ ...prev, [activeProblem.id]: next }));
   };
 
-  const handleNextProblem = () => {
-    if (activeProblemIndex < PROBLEMS.length - 1) {
-      setActiveProblemId(PROBLEMS[activeProblemIndex + 1].id);
-    }
-  };
-
-  const handleUpdateDailyRoutine = (updates: Partial<DailyRoutineState>) => {
-    const updated = { ...dailyRoutine, ...updates };
-    setDailyRoutine(updated);
-    saveDailyRoutine(updated);
-  };
-
-  // Re-solves due count
-  const reSolvesDueCount = Object.values(problemStates).filter(
-    (s) => s.status === 'resolve_due'
+  // Revisions due count
+  const revisionsDueCount = Object.values(problemStates).filter(
+    (s) => s.status === 'needs_revision'
   ).length;
 
   const handleContinueLearning = () => {
-    // Find first re-solve due, or first incomplete problem
-    const dueProblem = PROBLEMS.find((p) => problemStates[p.id]?.status === 'resolve_due');
+    const dueProblem = PROBLEMS.find((p) => problemStates[p.id]?.status === 'needs_revision');
     if (dueProblem) {
       setActiveProblemId(dueProblem.id);
     } else {
-      const nextUntouched = PROBLEMS.find((p) => !problemStates[p.id]?.day1Date);
-      if (nextUntouched) {
-        setActiveProblemId(nextUntouched.id);
+      const nextUnstarted = PROBLEMS.find((p) => !problemStates[p.id]?.firstSolvedDate);
+      if (nextUnstarted) {
+        setActiveProblemId(nextUnstarted.id);
       }
     }
     setCurrentTab('workspace');
   };
 
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <ToastProvider>
-          <div className="min-h-screen bg-[var(--canvas-bg)] text-[var(--text-primary)] transition-colors duration-200 flex flex-col font-sans selection:bg-indigo-500/25 selection:text-indigo-400">
-        <Navbar
-          currentTab={currentTab}
-          onTabChange={setCurrentTab}
-          activeProblemTitle={activeProblem.title}
-          onContinueLearning={handleContinueLearning}
-          reSolvesDueCount={reSolvesDueCount}
-          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
-        />
-
-        <CommandPalette
-          isOpen={isCommandPaletteOpen}
-          onClose={() => setIsCommandPaletteOpen(false)}
-          problems={PROBLEMS}
-          onSelectProblem={handleSelectProblem}
-          onNavigateTab={setCurrentTab}
-        />
+    <div className="min-h-screen bg-[#F6F3EC] text-[#252A27] flex flex-col font-sans selection:bg-[#A8B9A0]/40">
+      <Navbar
+        currentTab={currentTab}
+        onTabChange={setCurrentTab}
+        onContinueLearning={handleContinueLearning}
+        revisionsDueCount={revisionsDueCount}
+      />
 
       <main className="flex-1 w-full">
         {currentTab === 'dashboard' && (
-          <div className="w-full py-2 sm:py-4">
-            <HomeDashboard
+          <div className="p-4 sm:p-6 lg:p-8">
+            <BentoDashboard
               problems={PROBLEMS}
               states={problemStates}
               onSelectProblem={handleSelectProblem}
               onNavigateTab={setCurrentTab}
-              dailyRoutine={dailyRoutine}
-              onUpdateDailyRoutine={handleUpdateDailyRoutine}
             />
           </div>
         )}
 
         {currentTab === 'roadmap' && (
-          <div className="w-full py-2 sm:py-4">
-            <RoadmapExplorer
-              problems={PROBLEMS}
-              states={problemStates}
-              onSelectProblem={handleSelectProblem}
-            />
-          </div>
-        )}
-
-        {currentTab === 'tracker' && (
-          <div className="w-full py-2 sm:py-4">
-            <ReSolveTracker
+          <div className="p-4 sm:p-6 lg:p-8">
+            <RoadmapView
               problems={PROBLEMS}
               states={problemStates}
               onSelectProblem={handleSelectProblem}
@@ -154,42 +103,65 @@ export default function App() {
         )}
 
         {currentTab === 'workspace' && (
-          <ProblemWorkspace
+          <CodingWorkspace
             problem={activeProblem}
-            state={problemStates[activeProblem.id] || { problemId: activeProblem.id, status: 'not_started' } as any}
-            onUpdateState={(updates) => {
-              // triggers local storage update inside workspace component
-            }}
-            onPreviousProblem={activeProblemIndex > 0 ? handlePreviousProblem : undefined}
-            onNextProblem={activeProblemIndex < PROBLEMS.length - 1 ? handleNextProblem : undefined}
+            problemState={problemStates[activeProblem.id] || { problemId: activeProblem.id, status: 'not_started' } as any}
+            onUpdateProblemState={handleUpdateProblemState}
+            onNavigateRoadmap={() => setCurrentTab('roadmap')}
           />
         )}
 
-        {currentTab === 'analytics' && (
-          <div className="w-full py-2 sm:py-4">
-            <AnalyticsDashboard
+        {currentTab === 'revisions' && (
+          <div className="p-4 sm:p-6 lg:p-8">
+            <RevisionCenter
               problems={PROBLEMS}
               states={problemStates}
-              submissions={submissions}
+              onSelectProblem={handleSelectProblem}
+              onUpdateProblemState={handleUpdateProblemState}
             />
           </div>
         )}
 
-        {currentTab === 'video-insights' && (
-          <div className="w-full py-2 sm:py-4">
-            <VideoInsightsView />
+        {currentTab === 'fundamentals' && (
+          <div className="p-4 sm:p-6 lg:p-8">
+            <CSFundamentalsView />
           </div>
         )}
 
-        {currentTab === 'audit' && (
-          <div className="w-full py-2 sm:py-4">
-            <CurriculumAuditModal problems={PROBLEMS} />
+        {currentTab === 'system-design' && (
+          <div className="p-4 sm:p-6 lg:p-8">
+            <SystemDesignView />
+          </div>
+        )}
+
+        {currentTab === 'journal' && (
+          <div className="p-4 sm:p-6 lg:p-8">
+            <JournalView
+              problems={PROBLEMS}
+              states={problemStates}
+              onSelectProblem={handleSelectProblem}
+            />
+          </div>
+        )}
+
+        {currentTab === 'analytics' && (
+          <div className="p-4 sm:p-6 lg:p-8">
+            <AnalyticsView
+              problems={PROBLEMS}
+              states={problemStates}
+              onSelectProblem={handleSelectProblem}
+              onNavigateTab={setCurrentTab}
+            />
           </div>
         )}
       </main>
-        </div>
-      </ToastProvider>
-      </AuthProvider>
-    </ThemeProvider>
+
+      {/* Footer */}
+      {currentTab !== 'workspace' && (
+        <footer className="border-t border-[#E7E1D6] bg-[#FFFCF6] px-6 py-4 text-center text-xs text-[#8A928B]">
+          <span>Cozy Code Corner · Warm Minimalist Study Room · Built for Deep Algorithmic Understanding</span>
+        </footer>
+      )}
+    </div>
   );
 }
